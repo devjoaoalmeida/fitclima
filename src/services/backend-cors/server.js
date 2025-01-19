@@ -5,32 +5,41 @@ const axios = require("axios");
 const app = express();
 const PORT = 3000;
 
-// Habilitar CORS
 app.use(cors());
 
-// Configuração do Proxy
-app.use(express.json());
+const API_KEY = "9659d497";
+const BASE_URL = "https://api.hgbrasil.com/weather";
 
-app.use("/api", async (req, res) => {
-  const apiUrl = "https://api.hgbrasil.com/weather?key=9659d497"; // Substitua pela URL da API externa
+app.get("/api/city", async (req, res) => {
   const { lat, lon } = req.query;
 
-  try {
-    if (lat && lon) {
-      const response = await axios.get(
-        `${apiUrl}&lat=${lat}&lon=${lon}&user_ip=remote`
-      );
+  if (!lat || !lon) {
+    return res.status(400).json({ message: "Coordenadas (lat, lon) são obrigatórias" });
+  }
 
-      res.status(response.status).json(response.data);
-    } else {
-      throw new Error("Coordenadas não fornecidas");
-    }
+  try {
+    const response = await axios.get(`${BASE_URL}?key=${API_KEY}&lat=${lat}&lon=${lon}&user_ip=remote`);
+    res.status(response.status).json(response.data);
   } catch (error) {
-    res.status(error.response?.status || 500).json(error.response?.data || { message: "Erro interno" });
+    res
+      .status(error.response?.status || 500)
+      .json(error.response?.data || { message: "Erro ao buscar os dados" });
   }
 });
 
-// Iniciar o servidor
+app.get("/api/weatherdata", async (req, res) => {
+  try {
+    const response = await axios.get(
+      `${BASE_URL}?key=${API_KEY}&array_limit=7&fields=only_results,temp,city_name,forecast,max,min,date,humidity,rain_probability,wind_speedy`
+    );
+    res.status(response.status).json(response.data);
+  } catch (error) {
+    res
+      .status(error.response?.status || 500)
+      .json(error.response?.data || { message: "Erro ao buscar os dados" });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`Servidor rodando em http://localhost:${PORT}`);
 });

@@ -6,34 +6,17 @@
         <div class="login-box">
           <h2>Cadastre-se</h2>
           <form @submit.prevent="handleRegister">
+
             <label for="name">Nome:</label>
-            <input 
-              type="text" 
-              v-model="nome" 
-              id="name" 
-              @input="validateName"
-              required
-            />
+            <input type="text" v-model="nome" id="name" @input="validateName" required/>
             <small v-if="nameError" class="error-message">{{ nameError }}</small>
 
             <label for="email">Email:</label>
-            <input 
-              type="email" 
-              v-model="email" 
-              id="email" 
-              @input="validateEmail"
-              required
-            />
+            <input type="email" v-model="email" id="email" @input="validateEmail" required/>
             <small v-if="emailError" class="error-message">{{ emailError }}</small>
 
             <label for="password">Senha:</label>
-            <input 
-              type="password" 
-              v-model="password" 
-              id="password" 
-              @input="validatePassword"
-              required
-            />
+            <input type="password" v-model="password" id="password" @input="validatePassword" required/>
             <ul class="password-checklist">
               <li :class="{ valid: passwordCriteria.length }">Mínimo de 8 caracteres</li>
               <li :class="{ valid: passwordCriteria.uppercase }">Uma letra maiúscula</li>
@@ -43,17 +26,8 @@
             </ul>
 
             <label for="confirmPassword">Confirmar Senha:</label>
-            <input 
-              type="password" 
-              v-model="confirmPassword" 
-              id="confirmPassword" 
-              @input="validateConfirmPassword"
-              required
-            />
-            <small 
-              class="confirmation-message" 
-              :class="{ valid: confirmPasswordValid, error: !confirmPasswordValid }"
-            >
+            <input type="password" v-model="confirmPassword" id="confirmPassword" @input="validateConfirmPassword" required/>
+            <small class="confirmation-message" :class="{ valid: confirmPasswordValid, error: !confirmPasswordValid }">
               {{ confirmPasswordMessage }}
             </small>
 
@@ -73,8 +47,7 @@
 <script>
 import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
-import { setDoc } from "firebase/firestore";
-import { auth, db, doc, createUserWithEmailAndPassword } from "../services/firebaseconfig.js";
+import { auth, db, doc, createUserWithEmailAndPassword, setDoc } from "../services/firebaseconfig.js";
 import Header from "../components/Header.vue";
 import Footer from "../components/Footer.vue";
 
@@ -87,7 +60,6 @@ export default {
   setup() {
     const router = useRouter();
 
-    // Reactive variables
     const nome = ref("");
     const email = ref("");
     const password = ref("");
@@ -104,7 +76,6 @@ export default {
       special: false,
     });
 
-    // Computed property to validate the entire form
     const isFormValid = computed(() => {
       return (
         nome.value &&
@@ -116,7 +87,6 @@ export default {
       );
     });
 
-    // Methods
     const validateName = () => {
       if (!nome.value.trim()) {
         nameError.value = "O nome não pode estar vazio.";
@@ -162,7 +132,6 @@ export default {
           );
           const user = userCredential.user;
 
-          // Save user's name in Firestore
           await setDoc(doc(db, "users", user.uid), {
             nome: nome.value,
             email: email.value,

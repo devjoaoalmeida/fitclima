@@ -2,26 +2,21 @@
   <div>
     <Header />
     <main>
-      <h1>Bem-vindo ao FitClima!</h1>
-
       <div>
-        <!-- Botão de adicionar atividade -->
+        <h1>Bem-vindo ao FitClima!</h1>
+        <span id="current-date">{{ currentDate }}</span>
+      </div>
+      <div>
+
         <div class="add-icon" @click="openForm">+</div>
 
-        <!-- Modal para adicionar ou editar atividade -->
         <div v-if="isModalVisible" class="overlay" @click.self="closeForm">
           <div class="form-container">
             <form @submit.prevent="handleSubmit">
               <h2>{{ isEditing ? 'Editar Atividade Física' : 'Adicionar Atividade Física' }}</h2>
 
               <label for="activity">Atividade Física:</label>
-              <input
-                type="text"
-                id="activity"
-                v-model="formData.activity"
-                required
-                placeholder="Ex: Corrida"
-              />
+              <input type="text" id="activity" v-model="formData.activity" required placeholder="Ex: Corrida"/>
 
               <label for="day">Dia da Semana:</label>
               <select id="day" v-model="formData.day" required>
@@ -43,12 +38,25 @@
           </div>
         </div>
 
-        <!-- Lista de atividades -->
         <div class="activity-list">
-          <div v-for="(activity, index) in activities" :key="activity.id" class="activity-card">
+          <div 
+            v-for="(activity, index) in activities" 
+            :key="activity.id || index" 
+            class="activity-card"
+          >
             <p><strong>Atividade:</strong> {{ activity.activity }}</p>
             <p><strong>Dia:</strong> {{ activity.day }}</p>
+            <p><strong>Data:</strong> {{ formatDate(activity.day) }}</p>
             <p><strong>Horário:</strong> {{ activity.time }}</p>
+
+            <p><strong>Previsão do Tempo:</strong></p>
+            <p>Temperatura: {{ activity.weatherInfo?.temperature || "Sem dados" }}°C</p>
+            <p>Máxima: {{ activity.weatherInfo?.maxTemperature || "Sem dados" }}°C</p>
+            <p>Mínima: {{ activity.weatherInfo?.minTemperature || "Sem dados" }}°C</p>
+            <p>Probabilidade de Chuva: {{ activity.weatherInfo?.rainProbability || "Sem dados" }}%</p>
+            <p>Umidade: {{ activity.weatherInfo?.humidity || "Sem dados" }}%</p>
+            <p>Velocidade do Vento: {{ activity.weatherInfo?.windSpeed || "Sem dados" }}</p>
+
             <button @click="editActivity(index)">Editar</button>
             <button @click="removeActivity(index)">Remover</button>
           </div>
@@ -62,7 +70,8 @@
 <script>
 import Header from '../components/Header.vue';
 import Footer from '../components/Footer.vue';
-import { db, collection, doc, getDocs, addDoc, updateDoc, deleteDoc } from '../services/firebaseconfig.js'; // Ajuste o caminho conforme necessário
+import { db, collection, getDocs, addDoc, updateDoc, deleteDoc } from '../services/firebaseconfig.js'; // Ajuste o caminho conforme necessário
+import weatherService from '../services/weatherService.js';
 
 export default {
   name: "Home",
@@ -76,15 +85,46 @@ export default {
       isEditing: false,
       editIndex: null,
       formData: {
-        activity: "", // Nome da atividade
-        day: "segunda-feira", // Dia da semana
-        time: "", // Horário
+        activity: "", 
+        day: "segunda-feira", 
+        time: "",
+        weatherInfo: {
+          temperature: "",
+          maxTemperature: "",
+          minTemperature: "",
+          rainProbability: "",
+          humidity: "",
+          windSpeed: "",
+        },
       },
-      activities: [], // Lista de atividades
-      maxCards: 15, // Limite máximo de cards
+      activities: [], 
+      maxCards: 15, 
+      currentDate: "",
+      weekEndDate: "",
+      daysOfWeek: [
+        "Domingo",
+        "Segunda-feira",
+        "Terça-feira",
+        "Quarta-feira",
+        "Quinta-feira",
+        "Sexta-feira",
+        "Sábado",
+      ],
     };
   },
   methods: {
+    updateCurrentDate() {
+      const today = new Date();
+      const dayOfWeek = this.daysOfWeek[today.getDay()];
+      const date = today.toLocaleDateString("pt-BR");
+      this.currentDate = `${dayOfWeek}, ${date}`;
+    },
+    calculateWeekEndDate() {
+      const today = new Date();
+      const endOfWeek = new Date(today);
+      endOfWeek.setDate(today.getDate() + 6);
+      this.weekEndDate = endOfWeek.toLocaleDateString("pt-BR");
+    },
     openForm() {
       this.isModalVisible = true;
     },
@@ -104,25 +144,32 @@ export default {
       }
 
       try {
+        // Criar o objeto `newActivity` com os dados do formulário e previsão do tempo
+        const newActivity = {
+          activity: this.formData.activity,
+          day: this.formData.day,
+          time: this.formData.time,
+        };
+
         if (this.isEditing && this.editIndex !== null) {
-          // Atualiza a atividade na lista local e no Firestore
+          // Atualizar atividade existente
           const docRef = this.activities[this.editIndex].docRef;
-          await updateDoc(docRef, {
-            activity: this.formData.activity,
-            day: this.formData.day,
-            time: this.formData.time,
-          });
-          this.activities[this.editIndex] = { ...this.formData, docRef };
+          await updateDoc(docRef, newActivity);
+          this.activities[this.editIndex] = { ...newActivity, docRef };
         } else {
-          // Adiciona uma nova atividade ao Firestore
-          const docRef = await addDoc(collection(db, 'activities'), { ...this.formData });
-          this.activities.push({ ...this.formData, docRef });
+          // Adicionar nova atividade
+          const docRef = await addDoc(collection(db, 'activities'), newActivity);
+          this.activities.push({ ...newActivity, docRef });
         }
+
         this.closeForm();
       } catch (error) {
         console.error("Erro ao enviar o formulário:", error);
+        alert("Erro ao adicionar a atividade. Tente novamente.");
       }
     },
+
+
     async editActivity(index) {
       try {
         const activity = this.activities[index];
@@ -138,22 +185,63 @@ export default {
       try {
         const docRef = this.activities[index].docRef;
         await deleteDoc(docRef);
-        this.activities.splice(index, 1); // Remove localmente
+        this.activities.splice(index, 1);
       } catch (error) {
         console.error("Erro ao remover atividade:", error);
       }
     },
-  },
-  async mounted() {
-    try {
-      const querySnapshot = await getDocs(collection(db, 'activities'));
-      this.activities = querySnapshot.docs.map(doc => ({
-        ...doc.data(),
-        docRef: doc.ref, // Referência ao documento para operações futuras
-      }));
-    } catch (error) {
-      console.error("Erro ao carregar atividades:", error);
-    }
+    formatDate(day) {
+      const today = new Date();
+      const dayMap = {
+        'domingo': 0,
+        'segunda-feira': 1,
+        'terca-feira': 2,
+        'quarta-feira': 3,
+        'quinta-feira': 4,
+        'sexta-feira': 5,
+        'sabado': 6,
+      };
+
+      const targetDay = dayMap[day];
+      const targetDate = new Date(today);
+      const daysToAdd = (targetDay - today.getDay() + 7) % 7;
+      targetDate.setDate(today.getDate() + daysToAdd);
+
+      const formattedDate = targetDate.toLocaleDateString("pt-BR", { day: '2-digit', month: '2-digit'});
+      return `${formattedDate}`;
+      
+    },
+    async mounted() {
+      this.updateCurrentDate();
+      this.calculateWeekEndDate();
+
+      try {
+        const querySnapshot = await getDocs(collection(db, 'activities'));
+        this.activities = querySnapshot.docs.map(doc => ({
+          ...doc.data(),
+          docRef: doc.ref,
+          weatherInfo: null, // Inicialmente vazio
+        }));
+        console.log("Atividades carregadas:", this.activities)
+
+        // Após carregar atividades, buscar dados climáticos para cada uma
+        await this.fetchWeather();
+      } catch (error) {
+        console.error("Erro ao carregar atividades:", error);
+      }
+    },
+
+    async fetchWeather() {
+      for (const activity of this.activities) {
+        try {
+          const weatherData = await weatherService.getWeatherData();
+          activity.weatherInfo = weatherData; 
+          console.log("Dados climaticos para a atividade:", activity)
+        } catch (error) {
+          console.error("Erro ao buscar informações climáticas:", error);
+        }
+      }
+    },
   },
 };
 </script>
@@ -238,7 +326,7 @@ export default {
 
 .activity-list {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 20px;
   margin-top: 20px;
 }
@@ -253,16 +341,20 @@ export default {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  text-align: center;
 }
 
 .activity-card button {
-  margin-right: 10px;
+  margin-top: 10px;
   background-color: #234f7e;
   color: #fff;
   border: none;
   padding: 5px 10px;
   border-radius: 5px;
   cursor: pointer;
-  align-self: center;
+}
+.error {
+  color: red;
+  font-size: 12px;
 }
 </style>

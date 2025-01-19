@@ -2,7 +2,7 @@
   <header>
     <h1>FitClima</h1>
     <section id="city-info" class="city-info">
-      <span id="city-name">{{ cityName }}</span> <!-- Nome da cidade -->
+      <span id="city-name">{{ cityName }}</span>
     </section>
     <nav>
       <ul>
@@ -18,7 +18,7 @@
         </li>
         <li>
           <template v-if="isLoggedIn">
-            <button @click="logout" class="nav-button">Sair</button> <!-- Botão para logout -->
+            <a @click="logout" class="nav-button">Sair</a>
           </template>
         </li>
       </ul>
@@ -27,84 +27,66 @@
 </template>
 
 <script>
-import axios from "axios";
-import { auth } from "../services/firebaseconfig.js"; // Importa o auth do firebaseconfig.js
+import { auth } from "../services/firebaseconfig.js";
+import geolocationService from "../services/geolocationService.js";
+import weatherService from "../services/weatherService.js";
 
 export default {
   name: "Header",
   data() {
     return {
-      cityName: "", // Cidade inicial (vazia)
-      isLoggedIn: false, // Inicialmente, o usuário não está logado
+      cityName: "",
+      isLoggedIn: false,
+      weatherForecast: "",  // Armazena apenas o forecast
     };
   },
-  mounted() {
-    // Monitorar o estado de autenticação com Firebase
+  async mounted() {
     auth.onAuthStateChanged((user) => {
-      if (user) {
-        this.isLoggedIn = true;
-        if (this.$route.path === "/login") {
-          this.$router.push("/dashboard"); // Redireciona para o dashboard após login
-        }
-      } else {
-        this.isLoggedIn = false;
+      this.isLoggedIn = !!user;
+      if (user && this.$route.path === "/login") {
+        this.$router.push("/dashboard");
       }
     });
+    this.initializeCity();
 
-    // Se o usuário permitir, tenta buscar automaticamente a localização
-    this.autoDetectLocation();
+    // Buscando o forecast
+    try {
+      const forecastData = await weatherService.getWeatherData();  // Chamado apenas para o forecast
+      if (Array.isArray(forecastData)) {  // Verificação se o dado recebido é um array
+        localStorage.setItem("weatherData", JSON.stringify(forecastData));
+        const storedData = JSON.parse(localStorage.getItem("weatherData"));
+        if (storedData) {
+          this.weatherForecast = storedData;  // Salva o forecast no state
+        } else {
+          console.log('Não há dados no localStorage.');
+        }
+      } else {
+        console.log('Dados meteorológicos não são válidos');
+      }
+    } catch (error) {
+      console.error("Erro ao buscar dados meteorológicos:", error);
+    }
   },
   methods: {
-    getCityFromStorage() {
-      return localStorage.getItem("userCity"); // Retorna a localidade armazenada, ou vazio caso não tenha
-    },
-    async autoDetectLocation() {
-      // Verificar se o localStorage já tem o userCity salvo
-      const savedCity = this.getCityFromStorage();
-      if (savedCity) {
-        this.cityName = savedCity;
-        return; // Se já tiver, não faz a nova busca
-      }
-
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          async (position) => {
-            const { latitude, longitude } = position.coords;
-            try {
-              const response = await axios.get(
-                "http://localhost:3000/api", // Chama o backend
-                {
-                  params: {
-                    lat: latitude,
-                    lon: longitude,
-                  },
-                }
-              );
-              if (response.data && response.data.results) {
-                const location = response.data.results; // Obtém os dados da localização e clima
-                this.cityName = location.city || "";
-                localStorage.setItem("userCity", location.city || ""); // Salva o userCity no localStorage
-              } else {
-                throw new Error("Localização não encontrada");
-              }
-            } catch (error) {
-              console.error("Erro ao buscar localização:", error);
-            }
-          },
-          (error) => {
-            console.error("Erro ao acessar a localização:", error);
-          },
-          { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
-        );
-      } else {
-        console.error("Geolocalização não suportada neste navegador.");
+    async initializeCity() {
+      try {
+        const savedCity = localStorage.getItem("userCity");
+        if (savedCity) {
+          this.cityName = savedCity;
+        } else {
+          const city = await geolocationService.getCityByGeolocation();
+          this.cityName = city;
+          localStorage.setItem("userCity", city);
+        }
+      } catch (error) {
+        console.error("Erro ao buscar localização:", error);
       }
     },
     logout() {
       auth
         .signOut()
         .then(() => {
-          this.$router.push("/"); // Redireciona para a home após deslogar
+          this.$router.push("/");
         })
         .catch((error) => {
           console.error("Erro ao sair:", error);
@@ -113,27 +95,3 @@ export default {
   },
 };
 </script>
-
-<style scoped>
-.city-info {
-  background-color: rgba(0, 0, 0, 0.5);
-  color: white;
-  padding: 10px;
-  border-radius: 5px;
-  font-size: 16px;
-}
-
-.nav-button {
-  border: none;
-  background-color: unset;
-  text-decoration: none;
-  color: black;
-  margin: 0 10px;
-  font-weight: bold;
-  font-size: 16px;
-}
-
-.nav-button:hover {
-  color: rgb(100, 100, 100);
-}
-</style>

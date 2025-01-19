@@ -14,6 +14,7 @@ import {
   doc,
   getDocs,
   getDoc,
+  setDoc,
   addDoc,
   updateDoc,
   deleteDoc
@@ -51,6 +52,7 @@ export {
   doc,
   getDocs,
   getDoc,
+  setDoc,
   addDoc,
   updateDoc,
   deleteDoc,

@@ -25,12 +25,10 @@
               <img src="/src/assets/web_neutral_rd_na@1x.png" @click="loginWithGoogle" class="google-login-button">
             </div>
 
-
             <div class="register-button">
               <p>Não tem conta? </p>
               <router-link to="/register">Cadastre-se</router-link>
             </div>
-            <!-- Botão de Esqueci minha senha -->
           </div>
         </div>
       </div>
@@ -57,7 +55,7 @@ export default {
     async handleLogin() {
       try {
         await signInWithEmailAndPassword(auth, this.email, this.password);
-        this.$router.push('/dashboard'); // Redireciona para a dashboard
+        this.$router.push('/dashboard'); 
       } catch (error) {
         alert('Erro ao fazer login: ' + error.message);
       }
@@ -65,7 +63,7 @@ export default {
     async loginWithGoogle() {
       try {
         await signInWithPopup(auth, googleProvider);
-        this.$router.push('/dashboard'); // Redireciona para a dashboard
+        this.$router.push('/dashboard');
       } catch (error) {
         alert('Erro ao fazer login com Google: ' + error.message);
       }
