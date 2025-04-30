@@ -16,6 +16,7 @@ const axios = require("axios");
 
 const app = express();
 
+
 app.use(cors());
 
 const API_KEY = "9659d497";
