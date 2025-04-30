@@ -12,7 +12,7 @@ export default {
       });
 
       const { latitude, longitude } = position.coords;
-      const response = await axios.get("http://localhost:3000/api/city", { params: { lat: latitude, lon: longitude } });
+      const response = await axios.get("https://api-tj65aqhppa-uc.a.run.app/api/city", { params: { lat: latitude, lon: longitude } });
 
       if (response.data?.results?.city) {
         return response.data.results.city;

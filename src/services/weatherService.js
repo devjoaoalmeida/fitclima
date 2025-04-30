@@ -25,7 +25,7 @@ export default {
 
   async getWeatherData(lat, lon) {
     try {
-      const response = await axios.get("http://localhost:3000/api/weatherdata", { params: { lat, lon } });
+      const response = await axios.get("https://api-tj65aqhppa-uc.a.run.appapi/weatherdata", { params: { lat, lon } });
       
       if (response.data?.forecast?.length) {
         return response.data.forecast;
