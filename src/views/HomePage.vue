@@ -273,7 +273,7 @@ export default {
       const lat = localStorage.getItem("userLatitude");
       const lon = localStorage.getItem("userLongitude");
       const res = await axios.get(
-        `http://localhost:3000/api/weatherdata?lat=${lat}&lon=${lon}`
+        `https://api-tj65aqhppa-uc.a.run.app/api/weatherdata?lat=${lat}&lon=${lon}`
       );
 
       const previsaoDoDia = {};
