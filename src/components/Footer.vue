@@ -1,16 +1,16 @@
 <template>
-    <footer>
-      <p>&copy; 2024 João Pedro de Almeida. Todos os direitos reservados.</p>
-    </footer>
-  </template>
+  <footer>
+    <p>&copy; 2025 João Pedro de Almeida. Todos os direitos reservados.</p>
+  </footer>
+</template>
   
-  <script>
+<script>
   export default {
     name: 'Footer'
   }
-  </script>
+</script>
   
-  <style scoped>
+<style scoped>
   footer {
     position: fixed;
     bottom: 0;
@@ -22,5 +22,5 @@
     padding: 10px;
     z-index: 1000;
   }
-  </style>
+</style>
   

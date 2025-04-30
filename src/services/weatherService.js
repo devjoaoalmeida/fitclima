@@ -1,69 +1,45 @@
 import axios from "axios";
 
 export default {
-  data() {
-    return {
-      weatherData: null,
-    };
+  async loadWeatherData() {
+    try {
+      const { latitude, longitude } = await this.getUserLocation();
+      this.weatherData = await this.getWeatherData(latitude, longitude);
+      console.log("Dados meteorológicos atualizados via API:", this.weatherData);
+    } catch (error) {
+      console.error("Erro ao carregar os dados meteorológicos:", error.message);
+    }
   },
-  mounted() {
-    this.loadWeatherData();
+
+  async getUserLocation() {
+    if (!navigator.geolocation) throw new Error("Geolocalização não é suportada pelo navegador.");
+    
+    return new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(
+        (position) => resolve(position.coords),
+        (error) => reject(new Error("Erro ao obter a localização do usuário: " + error.message)),
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    });
   },
-  methods: {
-    async loadWeatherData() {
-      try {
-        const storedData = JSON.parse(localStorage.getItem("weatherData"));
 
-        if (storedData) {
-          this.weatherData = storedData;
-          console.log("Dados meteorológicos carregados do localStorage:", this.weatherData);
-        } else {
-          // Se não tiver dados no localStorage, buscar via API
-          const weatherData = await this.getWeatherData();
-          this.weatherData = weatherData;
-          
-          // Salvar no localStorage
-          localStorage.setItem("weatherData", JSON.stringify(weatherData));
-          console.log("Dados novos carregados via API e salvos no localStorage");
-        }
-
-      } catch (error) {
-        console.error("Erro ao carregar os dados meteorológicos:", error);
+  async getWeatherData(lat, lon) {
+    try {
+      const response = await axios.get("http://localhost:3000/api/weatherdata", { params: { lat, lon } });
+      
+      if (response.data?.forecast?.length) {
+        return response.data.forecast;
+      } else {
+        throw new Error("Dados meteorológicos não contêm previsão ou estão em formato inválido");
       }
-    },
-
-    async getWeatherData() {
-      try {
-        const response = await axios.get(`http://localhost:3000/api/weatherdata`);
-    
-        if (response && response.data) {
-          console.log('Dados recebidos da API:', response.data);
-          const weather = response.data;
-    
-          if (weather && weather.forecast && Array.isArray(weather.forecast)) {
-            console.log("Previsões encontradas:", weather.forecast);
-            const forecastArray = weather.forecast;  // Extrai o array corretamente
-            return forecastArray;
-          } else {
-            throw new Error("Dados meteorológicos não contém previsão ou formato inválido");
-          }
-        } else {
-          throw new Error("Dados meteorológicos não encontrados");
-        }
-      } catch (error) {
-        if (error.code === 'ECONNABORTED') {
-          throw new Error("Tempo de resposta da API expirado.");
-        } else if (error.response) {
-          console.error("Erro na resposta da API:", error.response.data);
-          throw new Error("Erro na resposta da API");
-        } else if (error.request) {
-          console.error("Erro na requisição:", error.request);
-          throw new Error("Erro ao fazer a requisição à API");
-        } else {
-          console.error("Erro desconhecido:", error.message);
-          throw new Error(`Erro ao buscar os dados meteorológicos: ${error.message}`);
-        }
+    } catch (error) {
+      if (error.code === "ECONNABORTED") {
+        throw new Error("Tempo de resposta da API expirado.");
+      } else if (error.response) {
+        throw new Error("Erro na resposta da API");
+      } else {
+        throw new Error(error.message);
       }
-    }      
+    }
   },
 };

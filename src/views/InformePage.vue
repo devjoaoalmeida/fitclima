@@ -1,7 +1,6 @@
 <template>
   <div>
     <Header />
-
     <main>
       <h1>Informe-se</h1>
       <p>Informações sobre Sedentarismo e Atividade Física.</p>
@@ -26,7 +25,6 @@
             </div>
         </section>
     </main>
-
     <Footer />
   </div>
 </template>

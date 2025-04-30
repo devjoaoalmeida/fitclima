@@ -2,9 +2,20 @@
   <header>
     <h1>FitClima</h1>
     <section id="city-info" class="city-info">
-      <span id="city-name">{{ cityName }}</span>
+      <span id="city-name">Cidade: {{ cityName }}</span
+      ><br />
     </section>
-    <nav>
+    <div class="wrap-open-menu-hamburger">
+      <button class="open-menu-hamburger" type="button" @click="toggle">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+    <nav class="menu" :class="{'closed': !openMenu}">
+      <div class="wrap-menu">
+        <button class="menu-hamburger" type="button" @click="toggle"></button>
+      </div>
       <ul>
         <li><router-link to="/">Home</router-link></li>
         <li><router-link to="/informe">Informe-se</router-link></li>
@@ -16,10 +27,8 @@
             <router-link to="/login">Login</router-link>
           </template>
         </li>
-        <li>
-          <template v-if="isLoggedIn">
-            <a @click="logout" class="nav-button">Sair</a>
-          </template>
+        <li v-if="isLoggedIn">
+          <a @click="logout" class="nav-button">Sair</a>
         </li>
       </ul>
     </nav>
@@ -29,15 +38,16 @@
 <script>
 import { auth } from "../services/firebaseconfig.js";
 import geolocationService from "../services/geolocationService.js";
-import weatherService from "../services/weatherService.js";
 
 export default {
   name: "Header",
   data() {
     return {
       cityName: "",
+      latitude: "",
+      longitude: "",
       isLoggedIn: false,
-      weatherForecast: "",  // Armazena apenas o forecast
+      openMenu: false
     };
   },
   async mounted() {
@@ -48,38 +58,51 @@ export default {
       }
     });
     this.initializeCity();
-
-    // Buscando o forecast
-    try {
-      const forecastData = await weatherService.getWeatherData();  // Chamado apenas para o forecast
-      if (Array.isArray(forecastData)) {  // Verificação se o dado recebido é um array
-        localStorage.setItem("weatherData", JSON.stringify(forecastData));
-        const storedData = JSON.parse(localStorage.getItem("weatherData"));
-        if (storedData) {
-          this.weatherForecast = storedData;  // Salva o forecast no state
-        } else {
-          console.log('Não há dados no localStorage.');
-        }
-      } else {
-        console.log('Dados meteorológicos não são válidos');
-      }
-    } catch (error) {
-      console.error("Erro ao buscar dados meteorológicos:", error);
-    }
+    document.body.style.overflow = "";
   },
   methods: {
     async initializeCity() {
       try {
         const savedCity = localStorage.getItem("userCity");
-        if (savedCity) {
+        const savedLat = localStorage.getItem("userLatitude");
+        const savedLon = localStorage.getItem("userLongitude");
+
+        if (savedCity && savedLat && savedLon) {
           this.cityName = savedCity;
+          this.latitude = savedLat;
+          this.longitude = savedLon;
         } else {
           const city = await geolocationService.getCityByGeolocation();
           this.cityName = city;
           localStorage.setItem("userCity", city);
+
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const lat = position.coords.latitude;
+              const lon = position.coords.longitude;
+
+              this.latitude = lat;
+              this.longitude = lon;
+
+              localStorage.setItem("userLatitude", lat);
+              localStorage.setItem("userLongitude", lon);
+            },
+            (error) => {
+              console.error("Erro ao obter coordenadas:", error.message);
+            }
+          );
         }
       } catch (error) {
         console.error("Erro ao buscar localização:", error);
+      }
+    },
+    toggle() {
+      this.openMenu = !this.openMenu;
+
+      if(this.openMenu) {
+        document.body.style.overflow = "hidden";
+      } else {
+        document.body.style.overflow = "";
       }
     },
     logout() {

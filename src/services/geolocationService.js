@@ -2,46 +2,35 @@ import axios from "axios";
 
 export default {
   async getCityByGeolocation() {
-    if (!navigator.geolocation) {
-      return Promise.reject("Geolocalização não suportada neste navegador.");
+    if (!navigator.geolocation) throw new Error("Geolocalização não é suportada pelo navegador.");
+
+    try {
+      const position = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true, timeout: 10000, maximumAge: 0
+        });
+      });
+
+      const { latitude, longitude } = position.coords;
+      const response = await axios.get("http://localhost:3000/api/city", { params: { lat: latitude, lon: longitude } });
+
+      if (response.data?.results?.city) {
+        return response.data.results.city;
+      } else {
+        throw new Error("Localização não encontrada na resposta da API.");
+      }
+    } catch (error) {
+      if (error.code === error.PERMISSION_DENIED || error.message.includes("Denied")) {
+        throw new Error("Permissão de localização negada.");
+      } else if (error.code === error.POSITION_UNAVAILABLE || error.message.includes("Unavailable")) {
+        throw new Error("A localização não está disponível.");
+      } else if (error.code === error.TIMEOUT || error.message.includes("Timeout")) {
+        throw new Error("Tempo de espera para localização esgotado.");
+      } else if (error.response) {
+        throw new Error(`Erro na resposta da API: ${error.response.data}`);
+      } else {
+        throw new Error(`Erro desconhecido ao acessar a localização: ${error.message}`);
+      }
     }
-
-    return new Promise((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const { latitude, longitude } = position.coords;
-
-          try {
-            const response = await axios.get("http://localhost:3000/api/city", {
-              params: { lat: latitude, lon: longitude },
-            });
-
-            if (response.data?.results?.city) {
-              resolve(response.data.results.city);
-            } else {
-              reject("Localização não encontrada na resposta da API.");
-            }
-          } catch (error) {
-            reject(`Erro ao buscar localização no backend: ${error.message}`);
-          }
-        },
-        (error) => {
-          switch (error.code) {
-            case error.PERMISSION_DENIED:
-              reject("Permissão de localização negada.");
-              break;
-            case error.POSITION_UNAVAILABLE:
-              reject("A localização não está disponível.");
-              break;
-            case error.TIMEOUT:
-              reject("Tempo de espera para localização esgotado.");
-              break;
-            default:
-              reject("Erro desconhecido ao acessar a localização.");
-          }
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 } 
-      );
-    });
   },
 };
