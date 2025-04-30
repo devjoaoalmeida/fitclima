@@ -48,8 +48,6 @@ app.get("/api/weatherdata", async (req, res) => {
   }
 
   try {
-    const datas = obterInicioFimSemana();
-
     const response = await axios.get(
       `${BASE_URL}?key=${API_KEY}&lat=${lat}&lon=${lon}&array_limit=7&fields=only_results,city_name,forecast,date,max,min,humidity,rain_probability,wind_speedy,description,condition`
     );
@@ -61,4 +59,4 @@ app.get("/api/weatherdata", async (req, res) => {
   }
 });
 
-exports.api = functions.https.onRequest(app);
+exports.api = onRequest(app);
