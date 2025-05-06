@@ -1,21 +1,13 @@
 <template>
   <header>
-    <h1>FitClima</h1>
-    <section id="city-info" class="city-info">
-      <span id="city-name">Cidade: {{ cityName }}</span
-      ><br />
-    </section>
-    <div class="wrap-open-menu-hamburger">
-      <button class="open-menu-hamburger" type="button" @click="toggle">
-        <span></span>
-        <span></span>
-        <span></span>
-      </button>
+    <div class="site-city">
+      <h1>FitClima</h1>
+      <section id="city-info" class="city-info">
+        <span id="city-name">Cidade: {{ cityName }}</span
+        ><br />
+      </section>
     </div>
-    <nav class="menu" :class="{'closed': !openMenu}">
-      <div class="wrap-menu">
-        <button class="menu-hamburger" type="button" @click="toggle"></button>
-      </div>
+    <nav class="menu">
       <ul>
         <li><router-link to="/">Home</router-link></li>
         <li><router-link to="/informe">Informe-se</router-link></li>

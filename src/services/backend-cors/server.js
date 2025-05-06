@@ -3,7 +3,6 @@ const cors = require("cors");
 const axios = require("axios");
 
 const app = express();
-const PORT = 3000;
 
 app.use(cors());
 
@@ -48,8 +47,4 @@ app.get("/api/weatherdata", async (req, res) => {
       .status(error.response?.status || 500)
       .json(error.response?.data || { message: "Erro ao buscar os dados" });
   }
-});
-
-app.listen(PORT, () => {
-  console.log(`Servidor rodando em http://localhost:${PORT}`);
 });

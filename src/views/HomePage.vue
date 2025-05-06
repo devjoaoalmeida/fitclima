@@ -2,95 +2,28 @@
   <div>
     <Header />
     <main>
-      <div class="header-section">
+      <div>
         <h1>Bem-vindo ao FitClima!</h1>
-        <span id="current-date">{{ currentDate }}</span>
       </div>
 
-      <li><router-link to="/testeapi">STATUS API</router-link></li>
-
       <div class="add-section">
-        <div class="add-icon" @click="openForm">+</div>
+        <!-- Botão para abrir o formulário de adicionar ou editar atividade -->
+        <div class="add-icon" @click="openForm" aria-label="Adicionar Atividade Física">+</div>
 
-        <div v-if="isModalVisible" class="overlay" @click.self="closeForm">
-          <div class="form-container">
-            <form @submit.prevent="handleSubmit">
-              <h2>
-                {{
-                  isEditing
-                    ? "Editar Atividade Física"
-                    : "Adicionar Atividade Física"
-                }}
-              </h2>
-              <label for="activity">Atividade:</label>
-              <input
-                type="text"
-                id="activity"
-                v-model="formData.activity"
-                required
-                placeholder="Ex: Corrida"
-              />
+        <!-- Formulário de atividade (add/editar). Controlado pelo componente pai -->
+        <ActivityForm v-if="isModalVisible" :formData="formData" :isEditing="isEditing" @submit="handleSubmit"
+          @cancel="closeForm" />
 
-              <label for="day">Dia da Semana:</label>
-              <select id="day" v-model="formData.day" required>
-                <option v-for="day in daysOfWeek" :key="day" :value="day">
-                  {{ day }}
-                </option>
-              </select>
+        <!-- Lista de atividades organizadas por dia -->
+        <div v-if="!isLoading" class="activity-list">
+          <div v-for="day in orderedDaysOfWeek" :key="day">
+            <p class="titulo">{{ day }} {{ diasSemana[day] }}</p>
 
-              <button type="submit">
-                {{ isEditing ? "Salvar" : "Adicionar" }}
-              </button>
-              <button type="button" v-if="isEditing" @click="closeForm">
-                Cancelar
-              </button>
-            </form>
-            <p v-if="formSaved" class="success-msg">
-              Atividade salva com sucesso!
-            </p>
-          </div>
-        </div>
+            <!-- Mostra a previsão do tempo para o dia -->
+            <WeatherInfo :day="day" :previsao="previsaoDoDia[day]" />
 
-        <div class="activity-list" v-if="!isLoading">
-          <div v-for="day in daysOfWeek" :key="day" class="day-group">
-            <div class="info-weather">
-              <div v-if="previsaoDoDia[day]">
-                <p>Recomendação: {{ previsaoDoDia[day].recommendation }}</p>
-                <p>🌡️ Temperatura máxima: {{ previsaoDoDia[day].max }}°C</p>
-                <p>🌡️ Temperatura mínima: {{ previsaoDoDia[day].min }}°C</p>
-                <p>☁️ Descrição: {{ previsaoDoDia[day].description }}</p>
-                <p>
-                  🌧️ Probabilidade de chuva:
-                  {{ previsaoDoDia[day].rain_probability }}%
-                </p>
-                <p>💧 Umidade: {{ previsaoDoDia[day].humidity }}%</p>
-                <p>💨 Vento: {{ previsaoDoDia[day].wind_speedy }}</p>
-                <hr />
-              </div>
-            </div>
-
-            <h3>{{ day }}</h3>
-            <div v-if="groupedActivitiesByDay[day].length === 0">
-              <p class="no-activity">Nenhuma atividade</p>
-            </div>
-            <div v-else>
-              <div
-                v-for="(activity, index) in groupedActivitiesByDay[day]"
-                :key="activity.id || index"
-                class="activity-card"
-              >
-                <p style="font-size: xx-large; margin-bottom: 10px">
-                  {{ activity.activity }}
-                </p>
-
-                <button @click="editActivity(getGlobalIndex(activity))">
-                  Editar
-                </button>
-                <button @click="removeActivity(getGlobalIndex(activity))">
-                  Remover
-                </button>
-              </div>
-            </div>
+            <!-- Lista atividades do dia. Eventos edit/remove emitidos para o pai -->
+            <ActivityList :activities="groupedActivitiesByDay[day]" @edit="editActivity" @remove="removeActivity" />
           </div>
         </div>
       </div>
@@ -99,11 +32,13 @@
   </div>
 </template>
 
-<script>
-import { ref } from "vue";
 
+<script>
 import Header from "../components/Header.vue";
 import Footer from "../components/Footer.vue";
+import ActivityForm from "../components/ActivityForm.vue";
+import WeatherInfo from "../components/WeatherInfo.vue";
+import ActivityList from "../components/ActivityList.vue";
 import {
   db,
   collection,
@@ -114,75 +49,120 @@ import {
 } from "../services/firebaseconfig.js";
 import axios from "axios";
 
-const isLoading = ref(false);
-const data = ref(null);
-const error = ref(null);
-
 export default {
   name: "Home",
-  components: { Header, Footer },
+  components: {
+    Header,
+    Footer,
+    ActivityForm,
+    WeatherInfo,
+    ActivityList,
+  },
   data() {
     return {
-      isModalVisible: false,
-      isEditing: false,
-      editIndex: null,
-      formSaved: false,
-      formData: { activity: "", day: "Segunda-feira", time: "" },
-      activities: [],
-      maxCards: 15,
-      daysOfWeek: [
-        "Domingo",
-        "Segunda-feira",
-        "Terça-feira",
-        "Quarta-feira",
-        "Quinta-feira",
-        "Sexta-feira",
-        "Sábado",
+      isModalVisible: false, // controla visibilidade do formulário
+      isEditing: false,      // modo edição
+      editIndex: null,       // índice da atividade sendo editada
+      formData: { activity: "", day: "Domingo" }, // dados do formulário
+      activities: [],        // lista de atividades
+      isLoading: false,
+      previsaoDoDia: {},     // previsões organizadas por dia
+      diasSemana: {},        // mapeamento nomeDia -> data (ex: Segunda -> 06/05)
+      orderedDaysOfWeek: [], // dias da semana a partir de hoje
+      daysOfWeek: [ // ordem padrão dos dias
+        "Domingo", "Segunda-feira", "Terça-feira", "Quarta-feira",
+        "Quinta-feira", "Sexta-feira", "Sábado",
       ],
-      previsaoDoDia: {},
     };
   },
   computed: {
-    currentDate() {
-      const today = new Date();
-      return `${this.daysOfWeek[today.getDay()]}, ${today.toLocaleDateString(
-        "pt-BR"
-      )}`;
-    },
+    // Agrupa atividades por dia da semana e ordena por horário
     groupedActivitiesByDay() {
       const grouped = {};
       this.daysOfWeek.forEach((day) => (grouped[day] = []));
       this.activities.forEach((a) => grouped[a.day]?.push(a));
-      for (const day in grouped) {
-        grouped[day].sort((a, b) => a.time.localeCompare(b.time));
-      }
       return grouped;
     },
   },
   methods: {
-    openForm() {
-      this.isModalVisible = true;
+    // Busca previsão do tempo via API externa
+    async getWeatherData() {
+      this.isLoading = true;
+      const lat = localStorage.getItem("userLatitude");
+      const lon = localStorage.getItem("userLongitude");
+      try {
+        const res = await axios.get(
+          `https://api-tj65aqhppa-uc.a.run.app/api/weatherdata?lat=${lat}&lon=${lon}`
+        );
+        this.processWeatherData(res.data.forecast);
+      } catch (error) {
+        console.error("Erro ao obter previsão do tempo:", error);
+      } finally {
+        this.isLoading = false;
+      }
     },
-    closeForm() {
-      this.isModalVisible = false;
-      this.resetForm();
+
+    // Processa e organiza previsões por dia da semana
+    processWeatherData(forecast) {
+      const previsaoDoDiaData = {};
+      this.daysOfWeek.forEach((day) => {
+        const date = this.diasSemana[day];
+        const weather = forecast.find((item) => item.date === date);
+        previsaoDoDiaData[day] = weather
+          ? { ...weather, recommendation: this.validarCondicoesClima(weather) }
+          : { recommendation: "Previsão não disponível." };
+      });
+      this.previsaoDoDia = previsaoDoDiaData;
     },
-    resetForm() {
-      this.formData = { activity: "", day: "Segunda-feira", time: "" };
-      this.isEditing = false;
-      this.editIndex = null;
+
+    // Define se o clima é adequado para exercício
+    validarCondicoesClima(previsaoHoje) {
+      if (!previsaoHoje) return "Previsão para hoje não encontrada.";
+      const { max, humidity, rain_probability, condition } = previsaoHoje;
+      const climaAdequado =
+        rain_probability <= 30 &&
+        max >= 15 &&
+        max <= 30 &&
+        humidity <= 80 &&
+        !["rain", "storm"].includes(condition);
+      return climaAdequado
+        ? "Tempo adequado para exercícios ao ar livre."
+        : "Tempo não adequado para exercícios ao ar livre.";
     },
-    async handleSubmit() {
-      if (!this.isEditing && this.activities.length >= this.maxCards) {
+
+    // Monta a semana com as datas correspondentes
+    formatarSemana() {
+      const hoje = new Date();
+      const diasSemanaData = {};
+      this.daysOfWeek.forEach((day, index) => {
+        const data = new Date(hoje);
+        data.setDate(hoje.getDate() + ((index - hoje.getDay() + 7) % 7));
+        diasSemanaData[day] = `${String(data.getDate()).padStart(2, "0")}/${String(
+          data.getMonth() + 1
+        ).padStart(2, "0")}`;
+      });
+      this.diasSemana = diasSemanaData;
+    },
+
+    // Reordena os dias para começar a semana de hoje
+    ordenarDiasAPartirDeHoje() {
+      const hoje = new Date();
+      const diaHoje = hoje.getDay();
+      this.orderedDaysOfWeek = [
+        ...this.daysOfWeek.slice(diaHoje),
+        ...this.daysOfWeek.slice(0, diaHoje),
+      ];
+    },
+
+    // SUBMETER NOVA ATIVIDADE ou EDITAR EXISTENTE
+    async handleSubmit(data) {
+      if (!this.isEditing && this.activities.length >= 15) {
         alert("Você já atingiu o limite máximo de 15 atividades!");
         return;
       }
 
       const duplicate = this.activities.some(
-        (a) =>
-          a.day === this.formData.day &&
-          a.time === this.formData.time &&
-          a.activity === this.formData.activity
+        (a) => a.day === data.day && a.activity === data.activity
       );
       if (duplicate && !this.isEditing) {
         alert("Essa atividade já foi registrada para esse dia e horário.");
@@ -190,11 +170,7 @@ export default {
       }
 
       try {
-        const newActivity = {
-          activity: this.formData.activity,
-          day: this.formData.day,
-          time: this.formData.time,
-        };
+        const newActivity = { activity: data.activity, day: data.day };
 
         if (this.isEditing && this.editIndex !== null) {
           const docRef = this.activities[this.editIndex].docRef;
@@ -205,158 +181,55 @@ export default {
             id: this.activities[this.editIndex].id,
           };
         } else {
-          const docRef = await addDoc(
-            collection(db, "activities"),
-            newActivity
-          );
+          const docRef = await addDoc(collection(db, "activities"), newActivity);
           this.activities.push({ ...newActivity, docRef, id: docRef.id });
         }
 
-        this.formSaved = true;
-        setTimeout(() => (this.formSaved = false), 3000);
         this.closeForm();
       } catch (error) {
         console.error("Erro ao enviar o formulário:", error);
         alert("Erro ao adicionar a atividade. Tente novamente.");
       }
     },
-    async editActivity(index) {
-      try {
+
+    // INICIAR EDIÇÃO DE UMA ATIVIDADE
+    editActivity(id) {
+      const index = this.activities.findIndex((a) => a.id === id);
+      if (index !== -1) {
         const activity = this.activities[index];
-        this.formData = {
-          activity: activity.activity,
-          day: activity.day,
-          time: activity.time,
-        };
+        this.formData = { activity: activity.activity, day: activity.day };
         this.isEditing = true;
         this.editIndex = index;
         this.openForm();
-      } catch (error) {
-        console.error("Erro ao editar atividade:", error);
       }
     },
-    async removeActivity(index) {
-      try {
-        await deleteDoc(this.activities[index].docRef);
-        this.activities.splice(index, 1);
-      } catch (error) {
-        console.error("Erro ao remover atividade:", error);
-      }
-    },
-    getGlobalIndex(activity) {
-      return this.activities.findIndex((a) => a.id === activity.id);
-    },
-    formatDate(day) {
-      const today = new Date();
-      const target = new Date(today);
-      const targetDay = this.daysOfWeek.indexOf(day);
-      const diff = (targetDay - today.getDay() + 7) % 7;
-      target.setDate(today.getDate() + diff);
-      return target.toLocaleDateString("pt-BR", {
-        day: "2-digit",
-        month: "2-digit",
-      });
-    },
-    handleEsc(e) {
-      if (e.key === "Escape") this.closeForm();
-    },
-    getPeriodOfDay(time) {
-      const [hour] = time.split(":").map(Number);
-      if (hour >= 0 && hour < 6) return "Madrugada";
-      if (hour >= 6 && hour < 12) return "Manhã";
-      if (hour >= 12 && hour < 18) return "Tarde";
-      return "Noite";
-    },
-    async getData() {
-      isLoading.value = true;
 
-      const lat = localStorage.getItem("userLatitude");
-      const lon = localStorage.getItem("userLongitude");
-      const res = await axios.get(
-        `https://api-tj65aqhppa-uc.a.run.app/api/weatherdata?lat=${lat}&lon=${lon}`
-      );
-
-      const previsaoDoDia = {};
-      for (let index = 0; index < this.daysOfWeek.length; index++) {
-        const day = this.daysOfWeek[index];
-        const date = this.diasSemana[day];
-
-        const weather = res.data.forecast.find((item) => item.date === date);
-
-        if(weather) {
-          previsaoDoDia[day] = {
-            ...weather,
-            recommendation: this.validarCondicoesClima(weather),
-          };
+    // REMOVER ATIVIDADE DO FIREBASE
+    async removeActivity(id) {
+      const index = this.activities.findIndex((a) => a.id === id);
+      if (index !== -1) {
+        try {
+          await deleteDoc(this.activities[index].docRef);
+          this.activities.splice(index, 1);
+        } catch (error) {
+          console.error("Erro ao remover atividade:", error);
         }
       }
-
-      this.previsaoDoDia = previsaoDoDia;
-
-      isLoading.value = false;
     },
-    validarCondicoesClima(previsaoHoje) {
-      if (!previsaoHoje) {
-        return "Previsão para hoje não encontrada.";
-      }
-      const { max, humidity, rain_probability, condition } = previsaoHoje;
 
-      const climaAdequado =
-        rain_probability <= 30 &&
-        max >= 15 &&
-        max <= 30 &&
-        humidity <= 80 &&
-        !["rain", "storm"].includes(condition);
-
-      return climaAdequado
-        ? "Tempo adequado para exercícios ao ar livre."
-        : "Tempo **não** adequado para exercícios ao ar livre.";
+    // ABRIR E FECHAR FORMULÁRIO
+    openForm() {
+      this.isModalVisible = true;
     },
-    formatarSemana() {
-      const { start_date: startDate } = this.obterInicioFimSemana();
-
-      const diasSemana = {};
-
-      for (let i = 0; i < 7; i++) {
-        const dataAtual = new Date(startDate);
-        dataAtual.setDate(startDate.getDate() + i);
-
-        const diaSemana = dataAtual.toLocaleDateString("pt-br", {
-          weekday: "long",
-        });
-        const dataFormatada = `${String(dataAtual.getDate()).padStart(
-          2,
-          "0"
-        )}/${String(dataAtual.getMonth() + 1).padStart(2, "0")}`;
-
-        const key = diaSemana.charAt(0).toUpperCase() + diaSemana.slice(1);
-        diasSemana[key] = dataFormatada;
-      }
-
-      this.diasSemana = diasSemana;
-    },
-    obterInicioFimSemana() {
-      const hoje = new Date();
-      const dia = hoje.getDay();
-
-      const diffDomingo = hoje.getDate() - dia;
-      const startDate = new Date(hoje);
-      startDate.setDate(diffDomingo);
-      startDate.setHours(0, 0, 0, 0);
-      startDate.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" });
-
-      const diffSabado = 6 - dia;
-      const endDate = new Date(hoje);
-      endDate.setDate(hoje.getDate() + diffSabado);
-      startDate.setHours(0, 0, 0, 0);
-      endDate.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" });
-
-      return {
-        start_date: startDate,
-        end_date: endDate,
-      };
+    closeForm() {
+      this.isModalVisible = false;
+      this.formData = { activity: "", day: "Segunda-feira" };
+      this.isEditing = false;
+      this.editIndex = null;
     },
   },
+
+  // CARREGAMENTO INICIAL DAS ATIVIDADES E DA PREVISÃO
   async mounted() {
     try {
       const querySnapshot = await getDocs(collection(db, "activities"));
@@ -365,16 +238,13 @@ export default {
         docRef: doc.ref,
         id: doc.id,
       }));
-      document.addEventListener("keydown", this.handleEsc);
-
-      this.formatarSemana();
-      this.getData();
     } catch (error) {
       console.error("Erro ao carregar atividades:", error);
     }
-  },
-  beforeDestroy() {
-    document.removeEventListener("keydown", this.handleEsc);
+
+    this.ordenarDiasAPartirDeHoje();
+    this.formatarSemana();
+    await this.getWeatherData();
   },
 };
 </script>
