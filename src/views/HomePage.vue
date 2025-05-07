@@ -46,6 +46,8 @@ import {
   addDoc,
   updateDoc,
   deleteDoc,
+  getAuth,
+  onAuthStateChanged,
 } from "../services/firebaseconfig.js";
 import axios from "axios";
 
@@ -60,6 +62,7 @@ export default {
   },
   data() {
     return {
+      userId: null,
       isModalVisible: false, // controla visibilidade do formulário
       isEditing: false,      // modo edição
       editIndex: null,       // índice da atividade sendo editada
@@ -156,6 +159,17 @@ export default {
 
     // SUBMETER NOVA ATIVIDADE ou EDITAR EXISTENTE
     async handleSubmit(data) {
+      const auth = getAuth();
+      const user = auth.currentUser; // Garantindo que o usuário está autenticado
+      if (!user) {
+        alert("Você precisa estar logado para adicionar atividades.");
+        this.$router.push("/login"); // redireciona para o login se necessário
+        return;
+      }
+
+      this.userId = user.uid; // Garantir que userId é atribuído corretamente
+
+      // Verificar limite de atividades
       if (!this.isEditing && this.activities.length >= 15) {
         alert("Você já atingiu o limite máximo de 15 atividades!");
         return;
@@ -169,9 +183,22 @@ export default {
         return;
       }
 
-      try {
-        const newActivity = { activity: data.activity, day: data.day };
+      const atividadesDoDia = this.activities.filter(
+        (a) => a.day === data.day && a.userId === this.userId
+      );
 
+      if (!this.isEditing && atividadesDoDia.length >= 3) {
+        alert("Você já adicionou o limite de 3 atividades para esse dia.");
+        return;
+      }
+
+      const newActivity = {
+        activity: data.activity,
+        day: data.day,
+        userId: this.userId, // Garantindo que o userId seja passado corretamente
+      };
+
+      try {
         if (this.isEditing && this.editIndex !== null) {
           const docRef = this.activities[this.editIndex].docRef;
           await updateDoc(docRef, newActivity);
@@ -191,6 +218,7 @@ export default {
         alert("Erro ao adicionar a atividade. Tente novamente.");
       }
     },
+
 
     // INICIAR EDIÇÃO DE UMA ATIVIDADE
     editActivity(id) {
@@ -231,21 +259,29 @@ export default {
 
   // CARREGAMENTO INICIAL DAS ATIVIDADES E DA PREVISÃO
   async mounted() {
-    try {
-      const querySnapshot = await getDocs(collection(db, "activities"));
-      this.activities = querySnapshot.docs.map((doc) => ({
-        ...doc.data(),
-        docRef: doc.ref,
-        id: doc.id,
-      }));
-    } catch (error) {
-      console.error("Erro ao carregar atividades:", error);
-    }
+    const auth = getAuth();
+    onAuthStateChanged(auth, async (user) => {
+      if (!user) {
+        this.$router.push("/");
+        return;
+      }
 
-    this.ordenarDiasAPartirDeHoje();
-    this.formatarSemana();
-    await this.getWeatherData();
-  },
+      this.userId = user.uid;
+
+      try {
+        const querySnapshot = await getDocs(collection(db, "activities"));
+        this.activities = querySnapshot.docs
+          .map((doc) => ({ ...doc.data(), docRef: doc.ref, id: doc.id }))
+          .filter((activity) => activity.userId === this.userId); // Filtra só do usuário
+      } catch (error) {
+        console.error("Erro ao carregar atividades:", error);
+      }
+
+      this.ordenarDiasAPartirDeHoje();
+      this.formatarSemana();
+      await this.getWeatherData();
+    });
+  }
 };
 </script>
 

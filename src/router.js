@@ -6,7 +6,7 @@ import Register from './views/RegisterPage.vue';
 import Dashboard from './views/DashboardPage.vue';
 
 const routes = [
-  { path: "/", component: Login },
+  { path: "/", component: Login},
   { path: "/home", component: Home},
   { path: "/informe", component: Informe },
   { path: "/register", component: Register },
