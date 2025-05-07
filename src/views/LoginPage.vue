@@ -4,9 +4,17 @@
 
     <main>
       <div class="login-container">
+        <!-- Seção explicativa -->
+        <div class="intro-section">
+          <h1>Bem-vindo ao FitClima!</h1>
+          <p>Para acessar todas as funcionalidades do site, faça login com seu e-mail ou conta Google.</p>
+          <p>O FitClima ajuda você a planejar seus treinos de acordo com a previsão do tempo.</p>
+        </div>
+
+        <!-- Seção de login -->
         <div class="login-box">
           <h2>Entrar no seu perfil</h2>
-          
+
           <form @submit.prevent="handleLogin">
             <label for="email">Email:</label>
             <input type="email" v-model="email" id="email" required>
@@ -32,7 +40,6 @@
           </div>
         </div>
       </div>
-
     </main>
 
     <Footer />
@@ -42,7 +49,7 @@
 <script>
 import Header from '../components/Header.vue';
 import Footer from '../components/Footer.vue';
-import { auth, sendPasswordResetEmail, signInWithEmailAndPassword, signInWithPopup, googleProvider  } from '../services/firebaseconfig.js';
+import { auth, sendPasswordResetEmail, signInWithEmailAndPassword, signInWithPopup, googleProvider } from '../services/firebaseconfig.js';
 
 export default {
   data() {
@@ -55,7 +62,7 @@ export default {
     async handleLogin() {
       try {
         await signInWithEmailAndPassword(auth, this.email, this.password);
-        this.$router.push('/dashboard'); 
+        this.$router.push('/home');
       } catch (error) {
         alert('Erro ao fazer login: ' + error.message);
       }
@@ -63,7 +70,7 @@ export default {
     async loginWithGoogle() {
       try {
         await signInWithPopup(auth, googleProvider);
-        this.$router.push('/dashboard');
+        this.$router.push('/home');
       } catch (error) {
         alert('Erro ao fazer login com Google: ' + error.message);
       }

@@ -56,6 +56,10 @@ header nav ul li a:hover {
     width: 58%;
 }
 
+.site-city li{
+    font-size: xx-large;
+}
+
 .city-info {
     background-color: rgba(0, 0, 0, 0.5);
     color: white;

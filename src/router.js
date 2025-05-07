@@ -6,9 +6,9 @@ import Register from './views/RegisterPage.vue';
 import Dashboard from './views/DashboardPage.vue';
 
 const routes = [
-  { path: "/", component: Home },
+  { path: "/", component: Login },
+  { path: "/home", component: Home},
   { path: "/informe", component: Informe },
-  { path: "/login", component: Login },
   { path: "/register", component: Register },
   { path: "/dashboard", component: Dashboard, meta: { requiresAuth: true } },
 ];

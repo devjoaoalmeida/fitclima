@@ -1,22 +1,31 @@
 <template>
   <header>
-    <div class="site-city">
-      <h1>FitClima</h1>
-      <section id="city-info" class="city-info">
-        <span id="city-name">Cidade: {{ cityName }}</span
-        ><br />
-      </section>
-    </div>
-    <nav class="menu">
+    <nav class="site-city">
       <ul>
-        <li><router-link to="/">Home</router-link></li>
-        <li><router-link to="/informe">Informe-se</router-link></li>
         <li>
           <template v-if="isLoggedIn">
+            <router-link to="/home">FitClima</router-link>
+          </template>
+          <template v-else>
+            <router-link to="/">FitClima</router-link>
+          </template>
+        </li>
+      </ul>
+      <section id="city-info" class="city-info">
+        <span id="city-name">{{ cityName }}</span><br />
+      </section>
+    </nav>
+    <nav class="menu">
+      <ul>
+        <li>
+          <template v-if="isLoggedIn">
+            <router-link to="/home">Home</router-link>
+            <router-link to="/informe">Informe-se</router-link>
             <router-link to="/dashboard">Perfil</router-link>
           </template>
           <template v-else>
-            <router-link to="/login">Login</router-link>
+            <router-link to="/informe">Informe-se</router-link>
+            <router-link to="/">Login</router-link>
           </template>
         </li>
         <li v-if="isLoggedIn">
@@ -91,7 +100,7 @@ export default {
     toggle() {
       this.openMenu = !this.openMenu;
 
-      if(this.openMenu) {
+      if (this.openMenu) {
         document.body.style.overflow = "hidden";
       } else {
         document.body.style.overflow = "";

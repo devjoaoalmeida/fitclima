@@ -1,72 +1,79 @@
 /* Estilos comuns para login e registro */
 .login-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin: 50px;
-  }
-  
-  .login-box {
-    background-color: #fff;
-    border-radius: 10px;
-    padding: 2rem;
-    box-shadow: 0px 0px 20px 5px rgba(0, 0, 0, 0.1);
-    text-align: left;
-    width: 100%;
-    max-width: 400px;
-    padding-bottom: 10px;
-  }
-  
-  .login-box h2 {
-    text-align: center;
-    margin-bottom: 1rem;
-    color: #333;
-  }
-  
-  label {
-    font-weight: bold;
-    display: block;
-    margin-bottom: 0.5rem;
-    color: #555;
-    font-size: 14px;
-  }
-  
-  input {
-    width: 100%;
-    padding: 0.75rem;
-    margin-bottom: 1rem;
-    border: 1px solid #ccc;
-    border-radius: 5px;
-    box-sizing: border-box;
-    font-size: 14px;
-  }
-  
-  button {
-    width: 100%;
-    padding: 0.75rem;
-    background-color: #234f7e;
-    color: white;
-    border: none;
-    border-radius: 5px;
-    font-size: 16px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: background 0.3s ease;
-  }
-  
-  button:hover {
-    background-color: #212d39;
-  }
-  
-  button:disabled {
-    background-color: #ccc;
-    cursor: not-allowed;
-  }
-  
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+}
+
+.intro-section{
+  display: flex;
+  flex-direction: column;
+  margin: 15px;
+}
+
+.login-box {
+  background-color: #fff;
+  border-radius: 10px;
+  padding: 2rem;
+  box-shadow: 0px 0px 20px 5px rgba(0, 0, 0, 0.1);
+  text-align: left;
+  width: 100%;
+  max-width: 400px;
+  padding-bottom: 10px;
+}
+
+.login-box h2 {
+  text-align: center;
+  margin-bottom: 1rem;
+  color: #333;
+}
+
+label {
+  font-weight: bold;
+  display: block;
+  margin-bottom: 0.5rem;
+  color: #555;
+  font-size: 14px;
+}
+
+input {
+  width: 100%;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  box-sizing: border-box;
+  font-size: 14px;
+}
+
+button {
+  width: 100%;
+  padding: 0.75rem;
+  background-color: #234f7e;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+button:hover {
+  background-color: #212d39;
+}
+
+button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
 /* Estilos adicionais */
 
 /* Estilos gerais */
-.login-text, 
+.login-text,
 .register-text {
   display: flex;
   justify-content: center;
@@ -76,14 +83,14 @@
   color: #666;
 }
 
-.login-text a, 
+.login-text a,
 .register-text a {
   color: #007bff;
   text-decoration: none;
   cursor: pointer;
 }
 
-.login-text a:hover, 
+.login-text a:hover,
 .register-text a:hover {
   text-decoration: underline;
 }
@@ -104,7 +111,7 @@
   width: 90px;
 }
 
-.register-button{
+.register-button {
   display: flex;
   justify-content: center;
   width: 100%;
@@ -114,7 +121,7 @@
   width: 105px;
 }
 
-.forgot-password{
+.forgot-password {
   font-size: 14px;
   color: #007bff;
   text-decoration: none;
@@ -122,98 +129,103 @@
   margin-bottom: 15px;
 }
 
-.forgot-password:hover{
+.forgot-password:hover {
   text-decoration: underline;
 }
 
- 
-  /* Requisitos da senha */
-  .password-checklist, #passwordRequirements {
-    list-style-type: none;
-    padding: 0;
-    margin: 0.5em 0;
-  }
-  
-  .password-checklist li, #passwordRequirements li {
-    font-size: 0.875em;
-    margin: 0.25em 0;
-    display: flex;
-    align-items: center;
-  }
-  
-  .password-checklist li.valid, #passwordRequirements .valid {
-    color: green;
-    text-decoration: none;
-  }
-  
-  .password-checklist li, #passwordRequirements .invalid {
-    color: red;
-    text-decoration: line-through;
-    opacity: 0.7;
-  }
-  
-  .password-checklist li .icon, #passwordRequirements .icon {
-    margin-right: 8px;
-    font-weight: bold;
-    transition: color 0.3s ease;
-  }
-  
-  #passwordRequirements .valid .icon {
-    color: green;
-  }
-  
-  #passwordRequirements .invalid .icon {
-    color: red;
-  }
-  
-  /* Feedback visual no input */
-  #newPassword.valid {
-    border: 2px solid green;
-  }
-  
-  #newPassword.invalid {
-    border: 2px solid red;
-  }
-  
-  /* Adicionando o modo de visualização dos campos de senha */
-  .password-toggle {
-    position: absolute;
-    right: 10px;
-    top: 50%;
-    transform: translateY(-50%);
-    cursor: pointer;
-  }
-  
-  .password-toggle:hover {
-    color: #555;
-  }
-  
-  /* Mensagens de erro e confirmação */
-  .error-message, .confirmation-message.error {
-    color: red;
-    font-size: 0.875em;
-    margin-top: -0.5rem;
-    margin-bottom: 0.75rem;
-  }
-  
-  .confirmation-message {
-    font-size: 0.875em;
-    margin-top: 0.25em;
-  }
-  
-  .confirmation-message.valid {
-    color: green;
-  }
-  
-  .google-login{
-    display: flex;
-    width: 63%;
-    justify-items: center;
-    justify-content: space-between;
-    align-items: center;
-  }
 
-  .google-login p{
-    width: 100%;
-  }
+/* Requisitos da senha */
+.password-checklist,
+#passwordRequirements {
+  list-style-type: none;
+  padding: 0;
+  margin: 0.5em 0;
+}
 
+.password-checklist li,
+#passwordRequirements li {
+  font-size: 0.875em;
+  margin: 0.25em 0;
+  display: flex;
+  align-items: center;
+}
+
+.password-checklist li.valid,
+#passwordRequirements .valid {
+  color: green;
+  text-decoration: none;
+}
+
+.password-checklist li,
+#passwordRequirements .invalid {
+  color: red;
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+.password-checklist li .icon,
+#passwordRequirements .icon {
+  margin-right: 8px;
+  font-weight: bold;
+  transition: color 0.3s ease;
+}
+
+#passwordRequirements .valid .icon {
+  color: green;
+}
+
+#passwordRequirements .invalid .icon {
+  color: red;
+}
+
+/* Feedback visual no input */
+#newPassword.valid {
+  border: 2px solid green;
+}
+
+#newPassword.invalid {
+  border: 2px solid red;
+}
+
+/* Adicionando o modo de visualização dos campos de senha */
+.password-toggle {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+}
+
+.password-toggle:hover {
+  color: #555;
+}
+
+/* Mensagens de erro e confirmação */
+.error-message,
+.confirmation-message.error {
+  color: red;
+  font-size: 0.875em;
+  margin-top: -0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.confirmation-message {
+  font-size: 0.875em;
+  margin-top: 0.25em;
+}
+
+.confirmation-message.valid {
+  color: green;
+}
+
+.google-login {
+  display: flex;
+  width: 60%;
+  justify-items: center;
+  justify-content: space-between;
+  align-items: center;
+}
+
+@media (max-width: 700px) {
+
+}
